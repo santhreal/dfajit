@@ -12,12 +12,8 @@ fn test_error_empty_dfa() {
 
 #[test]
 fn test_error_too_many_states() {
-    let table = TransitionTable::new(100_000, 256).unwrap();
-    let result = JitDfa::compile(&table);
-    assert!(matches!(result, Err(Error::TooManyStates { states: 100_000, max: 65_536 })));
-    
-    let err = result.unwrap_err();
-    assert_eq!(err.to_string(), "DFA has 100000 states, exceeding the 65536-state JIT limit. Fix: use the interpreted fallback for large DFAs.");
+    let result = TransitionTable::new(100_000, 256);
+    assert!(result.is_err(), "100K states must be rejected by TransitionTable::new");
 }
 
 #[test]

@@ -256,12 +256,10 @@ fn compile_huge_dfa_falls_back_to_interpreted() {
 
 #[test]
 fn compile_dfa_exceeds_max_states_rejected() {
-    // 65537 exceeds TransitionTable::MAX_STATES (65536).
-    // TransitionTable::new correctly rejects it.
-    let result = TransitionTable::new(65_537, 256);
+    // Now rejected at TransitionTable::new, not compile
     assert!(
-        result.is_err(),
-        "65537 states must be rejected by TransitionTable::new"
+        TransitionTable::new(65_537, 256).is_err(),
+        "65537 states must be rejected"
     );
 }
 

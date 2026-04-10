@@ -112,7 +112,7 @@ fn test_from_bytes_pattern_lengths_overflow() {
 fn test_from_bytes_valid_minimal() {
     let mut data = vec![0; 8];
     data[0..4].copy_from_slice(&0u32.to_le_bytes());
-    data[4..8].copy_from_slice(&0u32.to_le_bytes());
+    data[4..8].copy_from_slice(&256u32.to_le_bytes());
     
     // Accept count = 0
     data.extend_from_slice(&0u32.to_le_bytes());
@@ -122,5 +122,5 @@ fn test_from_bytes_valid_minimal() {
 
     let result = TransitionTable::from_bytes(&data).unwrap();
     assert_eq!(result.state_count(), 0);
-    assert_eq!(result.class_count(), 0);
+    assert_eq!(result.class_count(), 256);
 }

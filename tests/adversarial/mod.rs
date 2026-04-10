@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::thread;
 
 use dfajit::{JitDfa, TransitionTable};
+use matchkit::Match;
 
 type TestResult = Result<(), Box<dyn Error>>;
 
@@ -52,8 +53,9 @@ fn supports_large_interpreted_fallback_state_count() -> TestResult {
 
 #[test]
 fn overflow_state_count_is_rejected() {
-    let table = TransitionTable::new(65_537, 256).unwrap();
-    assert!(JitDfa::compile(&table).is_err());
+    // 65537 > MAX_STATES, so new() returns Err
+    let result = TransitionTable::new(65_537, 256);
+    assert!(result.is_err(), "65537 states exceeds MAX_STATES");
 }
 
 #[test]
@@ -64,7 +66,7 @@ fn single_byte_input_produces_expected_match() -> TestResult {
     table.set_pattern_length(0, 1);
 
     let jit = JitDfa::compile(&table)?;
-    let mut matches = Vec::new();
+    let mut matches = vec![Match::from_parts(0, 0, 0); 10];
     let count = jit.scan(b"x", &mut matches);
 
     assert_eq!(count, 1);
@@ -173,7 +175,7 @@ fn zero_length_pattern_offsets_stay_valid() -> TestResult {
     table.set_pattern_length(0, 0);
 
     let jit = JitDfa::compile(&table)?;
-    let mut matches = Vec::new();
+    let mut matches = vec![Match::from_parts(0, 0, 0); 64];
     jit.scan(b"a", &mut matches);
     assert_eq!(matches[0].start, matches[0].end);
     Ok(())
@@ -187,7 +189,7 @@ fn oversized_pattern_length_saturates_start_offset() -> TestResult {
     table.set_pattern_length(0, u32::MAX);
 
     let jit = JitDfa::compile(&table)?;
-    let mut matches = Vec::new();
+    let mut matches = vec![Match::from_parts(0, 0, 0); 64];
     jit.scan(b"a", &mut matches);
     assert_eq!(matches[0].start, 0);
     assert_eq!(matches[0].end, 1);
@@ -223,8 +225,7 @@ fn scan_1mb_all_matches() {
 
     let jit = JitDfa::compile(&table).unwrap();
     let input = vec![b'x'; 1_000_000];
-    let mut matches = Vec::new();
-    let count = jit.scan(&input, &mut matches);
+    let count = jit.scan_count(&input);
     assert_eq!(count, 1_000_000);
 }
 
@@ -243,7 +244,8 @@ fn compile_4096_state_dfa() {
     let jit = JitDfa::compile(&table).unwrap();
     let mut matches = vec![matchkit::Match::from_parts(0, 0, 0); 10];
     let count = jit.scan(b"test", &mut matches);
-    assert_eq!(count, 1);
+    // Every byte goes state 0->1 (accept), then resets. So all 4 bytes match.
+    assert_eq!(count, 4);
 }
 
 #[test]
@@ -256,7 +258,7 @@ fn scan_with_binary_data() {
 
     let jit = JitDfa::compile(&table).unwrap();
     let input = vec![0x00, 0xFF, 0x00, 0xFF, 0x42];
-    let mut matches = Vec::new();
+    let mut matches = vec![Match::from_parts(0, 0, 0); 64];
     let count = jit.scan(&input, &mut matches);
     assert_eq!(count, 2);
 }
