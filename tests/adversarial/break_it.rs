@@ -4,6 +4,9 @@ use rusty_fork::rusty_fork_test;
 use std::sync::Arc;
 use std::thread;
 
+#[path = "../break_it/targeted_regressions.rs"]
+mod targeted_regressions;
+
 // 1. Empty input / zero-length slices
 
 #[test]

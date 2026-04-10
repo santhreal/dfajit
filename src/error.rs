@@ -9,7 +9,7 @@ pub enum Error {
     EmptyDfa,
 
     /// The transition table dimensions are inconsistent.
-    #[error("invalid transition table: {reason}. Fix: ensure transitions.len() == state_count * class_count. Validate your TransitionTable inputs carefully.")]
+    #[error("invalid transition table: {reason}")]
     InvalidTable {
         /// Description of the inconsistency.
         reason: String,

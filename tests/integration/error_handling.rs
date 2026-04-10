@@ -2,9 +2,10 @@ use dfajit::{Error, JitDfa, TransitionTable};
 
 #[test]
 fn test_error_empty_dfa() {
-    let result = JitDfa::compile(&TransitionTable::new(0, 256));
+    let table = TransitionTable::new(0, 256).unwrap();
+    let result = JitDfa::compile(&table);
     assert!(matches!(result, Err(Error::EmptyDfa)));
-    
+
     let err = result.unwrap_err();
     assert_eq!(err.to_string(), "DFA has zero states. Fix: provide at least one state in the transition table.");
 }
@@ -32,9 +33,8 @@ fn test_error_invalid_table_mismatch() {
 
 #[test]
 fn test_error_invalid_table_overflow() {
-    let table = TransitionTable::new(usize::MAX, 2).unwrap();
-    let result = JitDfa::compile(&table);
-    assert!(matches!(result, Err(Error::InvalidTable { .. })));
+    let result = TransitionTable::new(usize::MAX, 2);
+    assert!(result.is_err(), "usize::MAX states should be rejected");
 }
 
 #[test]

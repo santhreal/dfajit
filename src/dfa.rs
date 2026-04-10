@@ -57,7 +57,7 @@ impl JitDfa {
         if table.class_count() != 256 {
             return Err(Error::InvalidTable {
                 reason: format!(
-                    "class_count must be 256 for JIT, got {}",
+                    "class_count must be 256 for JIT, got {}. Fix: pass class_count=256 when constructing the TransitionTable.",
                     table.class_count()
                 ),
             });
@@ -68,7 +68,7 @@ impl JitDfa {
             .checked_mul(table.class_count())
             .ok_or_else(|| Error::InvalidTable {
                 reason: format!(
-                    "state_count={} * class_count={} overflows",
+                    "state_count={} * class_count={} overflows. Fix: reduce state_count or class_count to fit in usize.",
                     table.state_count(),
                     table.class_count(),
                 ),
@@ -77,7 +77,7 @@ impl JitDfa {
         if table.transitions().len() != expected_len {
             return Err(Error::InvalidTable {
                 reason: format!(
-                    "transition table has {} entries but state_count={} * class_count={} = {}",
+                    "transition table has {} entries but state_count={} * class_count={} = {}. Fix: ensure transitions.len() == state_count * class_count.",
                     table.transitions().len(),
                     table.state_count(),
                     table.class_count(),
@@ -89,7 +89,7 @@ impl JitDfa {
         if !output_links.is_empty() && output_links.len() != table.state_count() {
             return Err(Error::InvalidTable {
                 reason: format!(
-                    "output_links has {} entries but state_count is {}",
+                    "output_links has {} entries but state_count is {}. Fix: ensure output_links.len() == state_count.",
                     output_links.len(),
                     table.state_count()
                 ),
@@ -101,7 +101,7 @@ impl JitDfa {
             if link != 0xFFFF_FFFF && (link as usize) >= table.state_count() {
                 return Err(Error::InvalidTable {
                     reason: format!(
-                        "output_links[{i}] = {link} exceeds state_count {}",
+                        "output_links[{i}] = {link} exceeds state_count {}. Fix: ensure all output links point to valid states or 0xFFFFFFFF.",
                         table.state_count()
                     ),
                 });
@@ -117,7 +117,7 @@ impl JitDfa {
             if state as usize >= table.state_count() {
                 return Err(Error::InvalidTable {
                     reason: format!(
-                        "transition target state {state} exceeds state count {}",
+                        "transition target state {state} exceeds state count {}. Fix: ensure all transition targets are < state_count.",
                         table.state_count()
                     ),
                 });
@@ -125,7 +125,7 @@ impl JitDfa {
             if (t & 0x8000_0000) != 0 && !accept_set.contains(&state) {
                 return Err(Error::InvalidTable {
                     reason: format!(
-                        "transition target state {state} has bit 31 set but is not an accept state"
+                        "transition target state {state} has bit 31 set but is not an accept state. Fix: only set bit 31 on transitions to accept states."
                     ),
                 });
             }
@@ -137,7 +137,7 @@ impl JitDfa {
             if state as usize >= table.state_count() {
                 return Err(Error::InvalidTable {
                     reason: format!(
-                        "accept state {state} exceeds state count {}",
+                        "accept state {state} exceeds state count {}. Fix: ensure all accept states are < state_count.",
                         table.state_count()
                     ),
                 });
@@ -145,14 +145,14 @@ impl JitDfa {
             if seen_states[state as usize] {
                 return Err(Error::InvalidTable {
                     reason: format!(
-                        "state {state} has multiple accept patterns, which is not supported"
+                        "state {state} has multiple accept patterns, which is not supported. Fix: merge patterns or split into separate states."
                     ),
                 });
             }
             seen_states[state as usize] = true;
             if pid as usize >= pat_len {
                 return Err(Error::InvalidTable {
-                    reason: format!("pattern ID {pid} in accept states has no length defined"),
+                    reason: format!("pattern ID {pid} in accept states has no length defined. Fix: call set_pattern_length({pid}, len) before compiling."),
                 });
             }
         }
@@ -504,14 +504,14 @@ impl JitDfa {
             .configure(config)
             .build_many(patterns)
             .map_err(|error| Error::InvalidTable {
-                reason: format!("failed to compile regex patterns with regex-automata: {error}"),
+                reason: format!("failed to compile regex patterns with regex-automata: {error}. Fix: verify all regex patterns are valid and supported."),
             })?;
 
         let input = Input::new(&[][..]);
         let start_state = dfa
             .start_state_forward(&input)
             .map_err(|error| Error::InvalidTable {
-                reason: format!("failed to compute regex DFA start state: {error}"),
+                reason: format!("failed to compute regex DFA start state: {error}. Fix: verify regex patterns are valid and the DFA can be built."),
             })?;
 
         let mut state_ids = Vec::new();
@@ -544,7 +544,7 @@ impl JitDfa {
                         .copied()
                         .ok_or_else(|| Error::InvalidTable {
                             reason: format!(
-                                "regex DFA transition to undiscovered state on byte {byte}"
+                                "regex DFA transition to undiscovered state on byte {byte}. Fix: ensure the regex DFA was fully explored before compiling."
                             ),
                         })?;
                 table.set_transition(state_index, byte, next_index as u32);

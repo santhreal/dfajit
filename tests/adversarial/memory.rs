@@ -1,5 +1,5 @@
-use dfajit::{JitDfa, Match};
-use dfajit::table::TransitionTable;
+use dfajit::{JitDfa, TransitionTable};
+use matchkit::Match;
 
 #[test]
 fn test_extremely_large_input_buffer() {

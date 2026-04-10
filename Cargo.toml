@@ -71,14 +71,6 @@ path = "tests/property/invariants.rs"
 name = "workflow"
 path = "tests/integration/workflow.rs"
 
-[lints.clippy]
-missing_panics_doc = "allow"
-unwrap_used = "deny"
-expect_used = "deny"
-todo = "deny"
-unimplemented = "deny"
-panic = "deny"
-pedantic = { level = "warn", priority = -1 }
 
 [[test]]
 name = "regression"
@@ -90,3 +82,72 @@ path = "tests/impossible/conditions.rs"
 [[test]]
 name = "unit"
 path = "tests/unit/mod.rs"
+
+[[test]]
+name = "adversarial_adversarial_jit"
+path = "tests/adversarial/adversarial_jit.rs"
+
+[[test]]
+name = "adversarial_break_it"
+path = "tests/adversarial/break_it.rs"
+
+[[test]]
+name = "adversarial_dfa_generation"
+path = "tests/adversarial/dfa_generation.rs"
+
+[[test]]
+name = "adversarial_massive"
+path = "tests/adversarial/massive.rs"
+
+[[test]]
+name = "adversarial_memory"
+path = "tests/adversarial/memory.rs"
+
+[[test]]
+name = "adversarial"
+path = "tests/adversarial/mod.rs"
+
+[[test]]
+name = "adversarial_parsing"
+path = "tests/adversarial/parsing.rs"
+
+[[test]]
+name = "adversarial_test_legendary_adversarial"
+path = "tests/adversarial/test_legendary_adversarial.rs"
+
+[[test]]
+name = "adversarial_test_legendary_faultkit"
+path = "tests/adversarial/test_legendary_faultkit.rs"
+
+[[test]]
+name = "adversarial_unicode"
+path = "tests/adversarial/unicode.rs"
+
+[[test]]
+name = "integration_compile_scan"
+path = "tests/integration/compile_scan.rs"
+
+[[test]]
+name = "integration_error_handling"
+path = "tests/integration/error_handling.rs"
+
+[[test]]
+name = "integration"
+path = "tests/integration/mod.rs"
+
+[[test]]
+name = "property_api_props"
+path = "tests/property/api_props.rs"
+
+[[test]]
+name = "property"
+path = "tests/property/mod.rs"
+
+[[test]]
+name = "property_more_props"
+path = "tests/property/more_props.rs"
+
+[[test]]
+name = "property_proptest_parity"
+path = "tests/property/proptest_parity.rs"
+

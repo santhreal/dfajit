@@ -60,7 +60,7 @@ fn test_adversarial_max_hash_collision_pattern() {
     let mut table = TransitionTable::new(5, 256).unwrap();
     for i in 0..4 {
         for b in 0..=255u8 {
-            table.set_transition(i, b, i + 1); // everything goes to next state
+            table.set_transition(i, b, (i + 1) as u32); // everything goes to next state
         }
     }
     table.add_accept(4, 0);

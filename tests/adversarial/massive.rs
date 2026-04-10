@@ -1,5 +1,5 @@
-use dfajit::{JitDfa, Match};
-use dfajit::table::TransitionTable;
+use dfajit::{JitDfa, TransitionTable};
+use matchkit::Match;
 
 #[test]
 fn test_extremely_long_pattern() {
@@ -17,16 +17,16 @@ fn test_extremely_long_pattern() {
     let mut matches = vec![Match::from_parts(0, 0, 0); 10];
     let count = dfa.scan(&input, &mut matches);
     assert_eq!(count, 1);
-    assert_eq!(matches[0].start(), 0);
-    assert_eq!(matches[0].end(), 1000);
+    assert_eq!(matches[0].start, 0);
+    assert_eq!(matches[0].end, 1000);
 
     // Overlapping matches
     input.push(b'x');
     let count = dfa.scan(&input, &mut matches);
     // DFA resets on match, so it matches the first 1000 'x's, then has 1 'x' left.
     assert_eq!(count, 1);
-    assert_eq!(matches[0].start(), 0);
-    assert_eq!(matches[0].end(), 1000);
+    assert_eq!(matches[0].start, 0);
+    assert_eq!(matches[0].end, 1000);
 }
 
 #[test]
@@ -61,8 +61,8 @@ fn test_all_possible_bytes() {
     assert_eq!(count, 256);
     
     for i in 0..256 {
-        assert_eq!(matches[i].pattern_id(), i as u32);
-        assert_eq!(matches[i].start(), i);
-        assert_eq!(matches[i].end(), i + 1);
+        assert_eq!(matches[i].pattern_id, i as u32);
+        assert_eq!(matches[i].start, i as u32);
+        assert_eq!(matches[i].end, (i + 1) as u32);
     }
 }

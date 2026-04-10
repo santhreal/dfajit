@@ -26,7 +26,7 @@ fn test_from_bytes_integer_overflow_states_classes() {
 fn test_from_bytes_byte_length_overflow() {
     // trans_len * 4 overflows
     let mut data = vec![0; 8];
-    data[0..4].copy_from_slice(&(1 << 30).to_le_bytes()); // state_count
+    data[0..4].copy_from_slice(&(1u32 << 30).to_le_bytes()); // state_count
     data[4..8].copy_from_slice(&2u32.to_le_bytes()); // class_count
     let result = TransitionTable::from_bytes(&data);
     assert!(matches!(result, Err(Error::InvalidTable { .. })));
@@ -121,6 +121,6 @@ fn test_from_bytes_valid_minimal() {
     data.extend_from_slice(&0u32.to_le_bytes());
 
     let result = TransitionTable::from_bytes(&data).unwrap();
-    assert_eq!(result.state_count, 0);
-    assert_eq!(result.class_count, 0);
+    assert_eq!(result.state_count(), 0);
+    assert_eq!(result.class_count(), 0);
 }
