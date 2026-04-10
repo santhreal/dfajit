@@ -188,7 +188,7 @@ impl ExecutableBuffer {
             } else {
                 let mut output_state = clean_next;
                 while output_state != 0xFFFF_FFFF {
-                    let pid = self.accept_pattern[output_state as usize];
+                    let pid = self.accept_pattern.get(output_state as usize).copied().unwrap_or(0);
                     if count < matches.len() {
                         let end = (pos + 1) as u32;
                         let pat_len = table
@@ -450,8 +450,8 @@ pub fn compile_x86_64(table: &TransitionTable, output_links: &[u32]) -> Result<E
         c.extend_from_slice(&o.to_le_bytes());
     }
 
-    // Allocate RW memory
-    let page_size = 4096usize;
+    // Allocate RW memory — query runtime page size for Apple Silicon / ARM64.
+    let page_size = unsafe { libc::sysconf(libc::_SC_PAGESIZE) as usize }.max(4096);
     let alloc_size = (c.len() + page_size - 1) & !(page_size - 1);
 
     let ptr = unsafe {

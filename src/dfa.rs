@@ -96,6 +96,18 @@ impl JitDfa {
             });
         }
 
+        // Validate every output_link points to a valid state or sentinel.
+        for (i, &link) in output_links.iter().enumerate() {
+            if link != 0xFFFF_FFFF && (link as usize) >= table.state_count() {
+                return Err(Error::InvalidTable {
+                    reason: format!(
+                        "output_links[{i}] = {link} exceeds state_count {}",
+                        table.state_count()
+                    ),
+                });
+            }
+        }
+
         // Build accept-state set for bit-31 validation.
         let accept_set: std::collections::HashSet<u32> =
             table.accept_states().iter().map(|&(s, _)| s).collect();
