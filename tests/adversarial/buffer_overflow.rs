@@ -215,7 +215,10 @@ fn test_from_bytes_truncated_pattern_lengths() {
 /// Test that DFA state count limit is enforced.
 #[test]
 fn test_dfa_state_count_limit() {
-    assert!(TransitionTable::new(65537, 256).is_err(), "65537 states must be rejected");
+    assert!(
+        TransitionTable::new(65537, 256).is_err(),
+        "65537 states must be rejected"
+    );
 }
 
 /// Test that JIT eligibility boundary is respected.

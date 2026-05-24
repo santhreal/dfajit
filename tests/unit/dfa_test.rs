@@ -1,4 +1,4 @@
-use dfajit::{JitDfa, TransitionTable, Error};
+use dfajit::{Error, JitDfa, TransitionTable};
 use matchkit::Match;
 
 #[test]
@@ -26,7 +26,7 @@ fn test_dfa_from_patterns_empty() {
 fn test_dfa_from_patterns_single() {
     let patterns: Vec<&[u8]> = vec![b"abc"];
     let dfa = JitDfa::from_patterns(&patterns).unwrap();
-    
+
     let mut matches = vec![Match::from_parts(0, 0, 0); 10];
     let count = dfa.scan(b"xabcx", &mut matches);
     assert_eq!(count, 1);
@@ -39,7 +39,7 @@ fn test_dfa_from_patterns_single() {
 fn test_dfa_from_patterns_multiple() {
     let patterns: Vec<&[u8]> = vec![b"abc", b"x", b"yz"];
     let dfa = JitDfa::from_patterns(&patterns).unwrap();
-    
+
     let mut matches = vec![Match::from_parts(0, 0, 0); 10];
     let count = dfa.scan(b"xabcyz", &mut matches);
     assert_eq!(count, 3);
@@ -60,7 +60,7 @@ fn test_dfa_from_patterns_multiple() {
 fn test_has_match_empty() {
     let patterns: Vec<&[u8]> = vec![b"abc"];
     let dfa = JitDfa::from_patterns(&patterns).unwrap();
-    
+
     assert!(!dfa.has_match(b""));
 }
 
@@ -68,7 +68,7 @@ fn test_has_match_empty() {
 fn test_has_match_true() {
     let patterns: Vec<&[u8]> = vec![b"abc"];
     let dfa = JitDfa::from_patterns(&patterns).unwrap();
-    
+
     assert!(dfa.has_match(b"foo abc bar"));
 }
 
@@ -76,6 +76,6 @@ fn test_has_match_true() {
 fn test_has_match_false() {
     let patterns: Vec<&[u8]> = vec![b"abc"];
     let dfa = JitDfa::from_patterns(&patterns).unwrap();
-    
+
     assert!(!dfa.has_match(b"foo abd bar"));
 }

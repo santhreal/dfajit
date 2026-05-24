@@ -36,7 +36,7 @@ fn test_dfa_generation_nested_states() {
     let mut patterns = Vec::new();
     let pat1 = vec![b'a'; 4000]; // Creates 4001 states
     patterns.push(&pat1[..]);
-    
+
     // Should fallback to interpreted or handle it without panic.
     let dfa = JitDfa::from_patterns(&patterns).unwrap();
     assert!(dfa.state_count() >= 4000);

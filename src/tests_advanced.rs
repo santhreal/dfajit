@@ -101,7 +101,10 @@ fn compute_ranges_collapses_consecutive_targets() {
     for byte in b'a'..=b'z' {
         table.set_transition(0, byte, 1);
     }
-    assert_eq!(table.compute_ranges()[0], vec![(0, 96, 0), (97, 122, 1), (123, 255, 0)]);
+    assert_eq!(
+        table.compute_ranges()[0],
+        vec![(0, 96, 0), (97, 122, 1), (123, 255, 0)]
+    );
 }
 
 #[test]
@@ -123,7 +126,10 @@ fn compute_ranges_finds_expected_character_classes() {
         .into_iter()
         .filter(|(_, _, target)| *target != 0)
         .collect();
-    assert_eq!(interesting, vec![(b'0', b'9', 2), (b'A', b'Z', 1), (b'a', b'z', 1)]);
+    assert_eq!(
+        interesting,
+        vec![(b'0', b'9', 2), (b'A', b'Z', 1), (b'a', b'z', 1)]
+    );
 }
 
 #[cfg(feature = "regex")]
@@ -154,9 +160,18 @@ fn compute_ranges_detects_alpha_ranges() {
 
     let state0 = table.compute_ranges().remove(0);
     assert_eq!(state0.len(), 7);
-    assert_eq!(state0.iter().find(|r| r.0 == b'a').unwrap(), &(b'a', b'z', 1));
-    assert_eq!(state0.iter().find(|r| r.0 == b'A').unwrap(), &(b'A', b'Z', 1));
-    assert_eq!(state0.iter().find(|r| r.0 == b'0').unwrap(), &(b'0', b'9', 2));
+    assert_eq!(
+        state0.iter().find(|r| r.0 == b'a').unwrap(),
+        &(b'a', b'z', 1)
+    );
+    assert_eq!(
+        state0.iter().find(|r| r.0 == b'A').unwrap(),
+        &(b'A', b'Z', 1)
+    );
+    assert_eq!(
+        state0.iter().find(|r| r.0 == b'0').unwrap(),
+        &(b'0', b'9', 2)
+    );
 }
 
 #[test]

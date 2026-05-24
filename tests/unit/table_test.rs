@@ -1,4 +1,4 @@
-use dfajit::{TransitionTable, Error};
+use dfajit::{Error, TransitionTable};
 
 #[test]
 fn test_table_new() {
@@ -14,7 +14,7 @@ fn test_table_new() {
 fn test_table_set_transition() {
     let mut table = TransitionTable::new(2, 256).unwrap();
     table.set_transition(0, b'A', 1);
-    
+
     assert_eq!(table.transitions()[b'A' as usize], 1);
     assert_eq!(table.transitions()[b'B' as usize], 0);
 }
@@ -23,7 +23,7 @@ fn test_table_set_transition() {
 fn test_table_add_accept() {
     let mut table = TransitionTable::new(2, 256).unwrap();
     table.add_accept(1, 0);
-    
+
     assert_eq!(table.accept_states().len(), 1);
     assert_eq!(table.accept_states()[0], (1, 0));
     assert_eq!(table.pattern_lengths().len(), 1);
@@ -35,7 +35,7 @@ fn test_table_set_pattern_length() {
     let mut table = TransitionTable::new(2, 256).unwrap();
     table.add_accept(1, 0);
     table.set_pattern_length(0, 5);
-    
+
     assert_eq!(table.pattern_lengths()[0], 5);
 }
 
@@ -44,7 +44,7 @@ fn test_table_add_accept_resizes_pattern_lengths() {
     let mut table = TransitionTable::new(3, 256).unwrap();
     table.add_accept(1, 0);
     table.add_accept(2, 5);
-    
+
     assert_eq!(table.pattern_lengths().len(), 6);
     assert_eq!(table.pattern_lengths()[0], 0);
     assert_eq!(table.pattern_lengths()[5], 0);
@@ -63,10 +63,10 @@ fn test_table_serialize_roundtrip() {
     table.set_transition(1, b'B', 2);
     table.add_accept(2, 0);
     table.set_pattern_length(0, 2);
-    
+
     let bytes = table.to_bytes();
     let decoded = TransitionTable::from_bytes(&bytes).unwrap();
-    
+
     assert_eq!(decoded.state_count(), table.state_count());
     assert_eq!(decoded.class_count(), table.class_count());
     assert_eq!(decoded.transitions(), table.transitions());
@@ -78,10 +78,10 @@ fn test_table_serialize_roundtrip() {
 fn test_table_is_jit_eligible() {
     let table = TransitionTable::new(100, 256).unwrap();
     assert!(table.is_jit_eligible());
-    
+
     let large_table = TransitionTable::new(5000, 256).unwrap();
     assert!(!large_table.is_jit_eligible());
-    
+
     let non_byte_table = TransitionTable::new(100, 128).unwrap();
     assert!(!non_byte_table.is_jit_eligible());
 }

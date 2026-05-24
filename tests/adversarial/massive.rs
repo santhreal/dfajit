@@ -11,7 +11,7 @@ fn test_extremely_long_pattern() {
     table.set_pattern_length(0, 1000);
 
     let dfa = JitDfa::compile(&table).unwrap();
-    
+
     // Exact match
     let mut input = vec![b'x'; 1000];
     let mut matches = vec![Match::from_parts(0, 0, 0); 10];
@@ -51,15 +51,15 @@ fn test_all_possible_bytes() {
         table.add_accept((i + 1) as u32, i as u32);
         table.set_pattern_length(i as u32, 1);
     }
-    
+
     let dfa = JitDfa::compile(&table).unwrap();
-    
+
     let mut input: Vec<u8> = (0..=255).collect();
     let mut matches = vec![Match::from_parts(0, 0, 0); 300];
-    
+
     let count = dfa.scan(&input, &mut matches);
     assert_eq!(count, 256);
-    
+
     for i in 0..256 {
         assert_eq!(matches[i].pattern_id, i as u32);
         assert_eq!(matches[i].start, i as u32);

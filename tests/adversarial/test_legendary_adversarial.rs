@@ -10,7 +10,7 @@ fn test_adversarial_empty_input() {
 
     let dfa = JitDfa::compile(&table).unwrap();
     let mut matches = vec![Match::from_parts(0, 0, 0); 10];
-    
+
     // Empty input
     let count = dfa.scan(&[], &mut matches);
     assert_eq!(count, 0, "Scanning empty slice should return 0 matches");
@@ -25,7 +25,7 @@ fn test_adversarial_single_byte_0xff() {
 
     let dfa = JitDfa::compile(&table).unwrap();
     let mut matches = vec![Match::from_parts(0, 0, 0); 10];
-    
+
     // Single 0xFF byte
     let count = dfa.scan(&[0xFF], &mut matches);
     assert_eq!(count, 1, "Failed to match single 0xFF byte");
@@ -42,14 +42,14 @@ fn test_adversarial_alternating_pattern() {
 
     let dfa = JitDfa::compile(&table).unwrap();
     let mut matches = vec![Match::from_parts(0, 0, 0); 10];
-    
+
     // Input is max size, repeating "xy"
     let mut input = Vec::with_capacity(1_000_000);
     for _ in 0..500_000 {
         input.push(b'x');
         input.push(b'y');
     }
-    
+
     let count = dfa.scan_count(&input);
     assert_eq!(count, 500_000, "Should match alternating pattern perfectly");
 }
@@ -67,14 +67,17 @@ fn test_adversarial_max_hash_collision_pattern() {
     table.set_pattern_length(0, 4);
 
     let dfa = JitDfa::compile(&table).unwrap();
-    
+
     // An input of all identical bytes, triggering max transitions.
     let input = vec![0xAA; 100_000];
     let count = dfa.scan_count(&input);
-    
+
     // Every 4 bytes is a match, then DFA typically resets (based on semantics of engine).
     // If it resets, 100,000 / 4 = 25,000.
-    assert_eq!(count, 25_000, "Should handle pure transition overlapping smoothly");
+    assert_eq!(
+        count, 25_000,
+        "Should handle pure transition overlapping smoothly"
+    );
 }
 
 #[test]
@@ -86,9 +89,9 @@ fn test_adversarial_all_zero_bytes() {
 
     let dfa = JitDfa::compile(&table).unwrap();
     let mut matches = vec![Match::from_parts(0, 0, 0); 256];
-    
+
     let input = vec![0x00; 256];
     let count = dfa.scan(&input, &mut matches);
-    
+
     assert_eq!(count, 256, "Should process null bytes properly");
 }

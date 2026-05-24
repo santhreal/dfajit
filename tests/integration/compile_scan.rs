@@ -4,19 +4,19 @@ use matchkit::Match;
 #[test]
 fn test_compile_scan_extreme_permutations() {
     let mut table = TransitionTable::new(5, 256).unwrap();
-    
-    // state 0: start. 
+
+    // state 0: start.
     // state 1: saw 'a'
     // state 2: saw 'b'
     // state 3: saw 'c'
     // state 4: sink state / other match
-    
+
     table.set_transition(0, b'a', 1);
     table.set_transition(1, b'b', 2);
     table.set_transition(2, b'c', 3);
     table.add_accept(3, 0);
     table.set_pattern_length(0, 3);
-    
+
     // x, y, z all go to state 4 from state 0 for single-char matching
     table.set_transition(0, b'x', 4);
     table.set_transition(0, b'y', 4);

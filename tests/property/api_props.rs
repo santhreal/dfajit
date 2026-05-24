@@ -1,5 +1,5 @@
-use dfajit::TransitionTable;
 use dfajit::JitDfa;
+use dfajit::TransitionTable;
 use matchkit::Match;
 use proptest::prelude::*;
 
@@ -10,13 +10,13 @@ proptest! {
         table.set_transition(0, b'x', 1);
         table.add_accept(1, 0);
         table.set_pattern_length(0, 1);
-        
+
         let dfa = JitDfa::compile(&table).unwrap();
         let mut matches = vec![Match::from_parts(0, 0, 0); 100];
-        
+
         // This should not panic for any input
         let count = dfa.scan(&input, &mut matches);
-        
+
         // Check bounds on matches
         assert!(count <= input.len());
         for i in 0..count {

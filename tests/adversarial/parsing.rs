@@ -49,7 +49,7 @@ fn test_from_bytes_truncated_accept_states() {
     data[0..4].copy_from_slice(&1u32.to_le_bytes());
     data[4..8].copy_from_slice(&1u32.to_le_bytes());
     data.extend_from_slice(&[0; 4]); // 1 transition (state 0 -> 0)
-    
+
     // Accept count = 1
     data.extend_from_slice(&1u32.to_le_bytes());
     // Only 4 bytes of accept states provided (need 8)
@@ -65,7 +65,7 @@ fn test_from_bytes_accept_states_overflow() {
     data[0..4].copy_from_slice(&1u32.to_le_bytes());
     data[4..8].copy_from_slice(&1u32.to_le_bytes());
     data.extend_from_slice(&[0; 4]); // 1 transition (state 0 -> 0)
-    
+
     // Accept count = u32::MAX
     data.extend_from_slice(&(u32::MAX).to_le_bytes());
 
@@ -79,7 +79,7 @@ fn test_from_bytes_truncated_pattern_lengths() {
     data[0..4].copy_from_slice(&1u32.to_le_bytes());
     data[4..8].copy_from_slice(&1u32.to_le_bytes());
     data.extend_from_slice(&[0; 4]); // 1 transition (state 0 -> 0)
-    
+
     // Accept count = 0
     data.extend_from_slice(&0u32.to_le_bytes());
 
@@ -97,7 +97,7 @@ fn test_from_bytes_pattern_lengths_overflow() {
     data[0..4].copy_from_slice(&1u32.to_le_bytes());
     data[4..8].copy_from_slice(&1u32.to_le_bytes());
     data.extend_from_slice(&[0; 4]); // 1 transition (state 0 -> 0)
-    
+
     // Accept count = 0
     data.extend_from_slice(&0u32.to_le_bytes());
 
@@ -113,7 +113,7 @@ fn test_from_bytes_valid_minimal() {
     let mut data = vec![0; 8];
     data[0..4].copy_from_slice(&0u32.to_le_bytes());
     data[4..8].copy_from_slice(&256u32.to_le_bytes());
-    
+
     // Accept count = 0
     data.extend_from_slice(&0u32.to_le_bytes());
 

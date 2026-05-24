@@ -153,7 +153,11 @@ impl ExecutableBuffer {
             } else {
                 let mut output_state = clean_next;
                 while output_state != 0xFFFF_FFFF {
-                    let pid = self.accept_pattern.get(output_state as usize).copied().unwrap_or(0);
+                    let pid = self
+                        .accept_pattern
+                        .get(output_state as usize)
+                        .copied()
+                        .unwrap_or(0);
                     if count < matches.len() {
                         let end = (pos + 1) as u32;
                         let pat_len = table

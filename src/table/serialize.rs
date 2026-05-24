@@ -55,14 +55,21 @@ impl TransitionTable {
         let trans_bytes = trans_len
             .checked_mul(4)
             .ok_or_else(|| Error::InvalidTable {
-                reason: "transition table byte length overflow. Fix: reduce state_count or class_count.".into(),
+                reason:
+                    "transition table byte length overflow. Fix: reduce state_count or class_count."
+                        .into(),
             })?;
-        let trans_end = 8usize.checked_add(trans_bytes).ok_or_else(|| Error::InvalidTable {
-            reason: "transition table end offset overflow. Fix: reduce state_count or class_count.".into(),
-        })?;
+        let trans_end = 8usize
+            .checked_add(trans_bytes)
+            .ok_or_else(|| Error::InvalidTable {
+                reason:
+                    "transition table end offset overflow. Fix: reduce state_count or class_count."
+                        .into(),
+            })?;
         if data.len() < trans_end + 4 {
             return Err(Error::InvalidTable {
-                reason: "truncated transition table. Fix: provide the full transition array.".into(),
+                reason: "truncated transition table. Fix: provide the full transition array."
+                    .into(),
             });
         }
 
@@ -79,7 +86,9 @@ impl TransitionTable {
         let accept_bytes = accept_count
             .checked_mul(8)
             .ok_or_else(|| Error::InvalidTable {
-                reason: "accept states byte length overflow. Fix: reduce the number of accept states.".into(),
+                reason:
+                    "accept states byte length overflow. Fix: reduce the number of accept states."
+                        .into(),
             })?;
         let mut pos = trans_end + 4;
         if data.len()
@@ -104,7 +113,9 @@ impl TransitionTable {
 
         if pos + 4 > data.len() {
             return Err(Error::InvalidTable {
-                reason: "truncated pattern lengths header. Fix: provide the full pattern_lengths block.".into(),
+                reason:
+                    "truncated pattern lengths header. Fix: provide the full pattern_lengths block."
+                        .into(),
             });
         }
         let pat_count =
@@ -163,7 +174,8 @@ impl TransitionTable {
         }
         if class_count == 0 {
             return Err(Error::InvalidTable {
-                reason: "class_count must be greater than 0. Fix: pass a positive class_count.".into(),
+                reason: "class_count must be greater than 0. Fix: pass a positive class_count."
+                    .into(),
             });
         }
         let expected_len = state_count

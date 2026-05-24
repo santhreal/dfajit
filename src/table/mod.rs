@@ -36,7 +36,8 @@ impl TransitionTable {
         }
         if class_count == 0 {
             return Err(Error::InvalidTable {
-                reason: "class_count must be greater than 0. Fix: pass a positive class_count.".into(),
+                reason: "class_count must be greater than 0. Fix: pass a positive class_count."
+                    .into(),
             });
         }
         let total = state_count
