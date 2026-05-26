@@ -21,3 +21,9 @@ doc = false
 name = "fuzz_scan"
 path = "fuzz_targets/fuzz_scan.rs"
 doc = false
+
+[[bin]]
+name = "fuzz_transition_table"
+path = "fuzz_targets/fuzz_transition_table.rs"
+test = false
+doc = false

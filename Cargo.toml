@@ -159,3 +159,7 @@ path = "tests/property/more_props.rs"
 name = "property_proptest_parity"
 path = "tests/property/proptest_parity.rs"
 
+[[test]]
+name = "campaign_s_perf_match"
+path = "tests/campaign_s_perf_match.rs"
+

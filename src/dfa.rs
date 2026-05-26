@@ -166,7 +166,8 @@ impl JitDfa {
 
         #[cfg(target_arch = "x86_64")]
         {
-            let code = codegen::compile_x86_64(table, output_links)?;
+            // Prefer interpreted scanner until JIT self-check parity is wired per-table.
+            let code = codegen::compile_interpreted_fallback(table, output_links)?;
             Ok(Self {
                 code,
                 state_count: table.state_count(),

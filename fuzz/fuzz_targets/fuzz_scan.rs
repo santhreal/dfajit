@@ -1,14 +1,11 @@
 #![no_main]
 use libfuzzer_sys::fuzz_target;
-use dfajit::{TransitionTable, JitDfa};
+use dfajit::{JitDfa, TransitionTable};
 
 fuzz_target!(|data: &[u8]| {
-    if data.len() < 4 {
+    let Ok(mut table) = TransitionTable::new(3, 256) else {
         return;
-    }
-
-    // Build a simple 3-state DFA matching "ab"
-    let mut table = TransitionTable::new(3, 256);
+    };
     for state in 0..3 {
         for byte in 0..=255u8 {
             table.set_transition(state, byte, 0);
@@ -23,7 +20,6 @@ fuzz_target!(|data: &[u8]| {
         return;
     };
 
-    // Scan with arbitrary input — must not panic or crash
-    let mut matches = Vec::new();
+    let mut matches = vec![matchkit::Match::from_parts(0, 0, 0); 32];
     let _ = jit.scan(data, &mut matches);
 });

@@ -233,7 +233,7 @@ fn patch_imm64(code: &mut [u8], buf: *mut u8, offset: usize, value: u64) {
 }
 
 #[cfg(target_arch = "x86_64")]
-fn compile_interpreted_fallback(
+pub(crate) fn compile_interpreted_fallback(
     table: &TransitionTable,
     output_links: &[u32],
 ) -> Result<ExecutableBuffer> {
