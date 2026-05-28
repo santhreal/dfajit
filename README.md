@@ -1,5 +1,7 @@
 # dfajit
 
+Part of [Santh](https://santh.dev) - open source Rust security and infrastructure tooling. Follow [@SanthProject](https://x.com/SanthProject) on X.
+
 JIT compilation of DFA transition tables to native x86_64 machine code.
 
 ## Quick Start
