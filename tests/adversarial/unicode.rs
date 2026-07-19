@@ -12,11 +12,11 @@ fn test_rtl_and_combining_characters() {
     // Some arabic text + combining marks.
     let input = "مرحبا بالعالم \u{064B}\u{064B}".as_bytes();
     let mut matches = vec![Match::from_parts(0, 0, 0); 100];
-    let count = dfa.scan(&input, &mut matches);
+    let count = dfa.scan(input, &mut matches);
 
     // We aren't testing regex correctness here since this is raw byte DFA,
     // Just testing it doesn't panic on multi-byte unicode.
-    assert!(count >= 0);
+    assert!(count <= matches.len());
 }
 
 #[test]
@@ -32,6 +32,6 @@ fn test_zero_width_joiner_and_emoji() {
     let dfa = JitDfa::compile(&table).unwrap();
     let input = "👨‍👩‍👦".as_bytes();
     let mut matches = vec![Match::from_parts(0, 0, 0); 100];
-    let count = dfa.scan(&input, &mut matches);
+    let count = dfa.scan(input, &mut matches);
     assert_eq!(count, 1); // Found the 👨
 }

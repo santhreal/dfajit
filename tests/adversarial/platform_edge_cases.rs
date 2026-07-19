@@ -305,8 +305,7 @@ fn test_non_standard_class_count() {
     let result = JitDfa::compile(&table);
     // This might succeed or fail depending on implementation,
     // but should not crash
-    if result.is_ok() {
-        let jit = result.unwrap();
+    if let Ok(jit) = result {
         let mut matches = vec![Match::from_parts(0, 0, 0); 10];
         let _ = jit.scan(b"test", &mut matches);
     }

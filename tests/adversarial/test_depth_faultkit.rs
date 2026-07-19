@@ -1,5 +1,5 @@
 use dfajit::{JitDfa, TransitionTable};
-use faultkit::{clear, inject, should_fail_alloc, should_fail_mmap, Fault};
+use faultkit::{clear, inject, should_fail_mmap, Fault};
 
 #[test]
 fn test_oom_injection_during_compilation() {
@@ -41,12 +41,11 @@ fn test_mmap_io_error_injection_during_compilation() {
     // If we have an mmap failure, it must fail safely.
     // Right now, if memmap2 is used without faultkit integration it might bypass this,
     // but we test the structure.
-    let res = JitDfa::compile(&table);
+    let _res = JitDfa::compile(&table);
 
     // Ideally it fails, but we don't panic.
-    if should_fail_mmap() {
-        // Just checking the boolean state is active
-    }
+    // Just checking the boolean state is active.
+    let _ = should_fail_mmap();
 
     clear();
     let res2 = JitDfa::compile(&table);

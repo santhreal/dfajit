@@ -22,7 +22,7 @@ pub fn compile_x86_64(table: &TransitionTable, output_links: &[u32]) -> Result<E
         });
     }
     if table.state_count() > MAX_JIT_STATES {
-        return compile_interpreted_fallback(table, output_links);
+        return Ok(compile_interpreted_fallback(table, output_links));
     }
 
     let mut flagged = table.transitions().to_vec();
@@ -40,7 +40,6 @@ pub fn compile_x86_64(table: &TransitionTable, output_links: &[u32]) -> Result<E
             *t = target as u32;
         }
     }
-
 
     let mut output_link = output_links.to_vec();
     if output_link.len() < table.state_count() {
@@ -242,7 +241,7 @@ fn patch_imm64(code: &mut [u8], buf: *mut u8, offset: usize, value: u64) {
 pub(crate) fn compile_interpreted_fallback(
     table: &TransitionTable,
     output_links: &[u32],
-) -> Result<ExecutableBuffer> {
+) -> ExecutableBuffer {
     // The interpreted path (`is_jit == false`) scans in software via `table`,
     // `accept_pattern`, and `output_links`; it never transmutes or calls
     // `ptr`. The previous code mmap'd a page, wrote a single `RET` (0xC3) into
@@ -263,12 +262,12 @@ pub(crate) fn compile_interpreted_fallback(
         output_link.resize(table.state_count(), 0xFFFF_FFFF);
     }
 
-    Ok(ExecutableBuffer {
+    ExecutableBuffer {
         ptr: std::ptr::null_mut(),
         len: 0,
         table: Some(table.clone()),
         is_jit: false,
         accept_pattern,
         output_links: output_link,
-    })
+    }
 }

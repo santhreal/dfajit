@@ -154,8 +154,8 @@ fn test_dfa_jit_parity() {
         let transitions = table.transitions();
         let accepts = table.accept_states();
 
-        for i in 0..input.len() {
-            let offset = (state * 256) + input[i] as usize;
+        for &byte in &input {
+            let offset = (state * 256) + usize::from(byte);
             state = transitions[offset] as usize;
 
             // Check if current state is an accept state

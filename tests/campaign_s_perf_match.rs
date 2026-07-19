@@ -299,10 +299,7 @@ fn campaign_compile_deterministic() {
     let b = JitDfa::compile(&t).unwrap();
     let mut ma = vec![Match::from_parts(0, 0, 0); 2];
     let mut mb = vec![Match::from_parts(0, 0, 0); 2];
-    assert_eq!(
-        a.scan(b"probe", &mut ma),
-        b.scan(b"probe", &mut mb)
-    );
+    assert_eq!(a.scan(b"probe", &mut ma), b.scan(b"probe", &mut mb));
 }
 
 #[test]

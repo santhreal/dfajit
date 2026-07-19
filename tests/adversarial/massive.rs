@@ -54,15 +54,15 @@ fn test_all_possible_bytes() {
 
     let dfa = JitDfa::compile(&table).unwrap();
 
-    let mut input: Vec<u8> = (0..=255).collect();
+    let input: Vec<u8> = (0..=255).collect();
     let mut matches = vec![Match::from_parts(0, 0, 0); 300];
 
     let count = dfa.scan(&input, &mut matches);
     assert_eq!(count, 256);
 
-    for i in 0..256 {
-        assert_eq!(matches[i].pattern_id, i as u32);
-        assert_eq!(matches[i].start, i as u32);
-        assert_eq!(matches[i].end, (i + 1) as u32);
+    for (i, m) in matches.iter().enumerate().take(256) {
+        assert_eq!(m.pattern_id, i as u32);
+        assert_eq!(m.start, i as u32);
+        assert_eq!(m.end, (i + 1) as u32);
     }
 }

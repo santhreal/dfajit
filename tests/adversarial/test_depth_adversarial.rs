@@ -41,7 +41,6 @@ fn test_adversarial_alternating_pattern() {
     table.set_pattern_length(0, 2);
 
     let dfa = JitDfa::compile(&table).unwrap();
-    let mut matches = vec![Match::from_parts(0, 0, 0); 10];
 
     // Input is max size, repeating "xy"
     let mut input = Vec::with_capacity(1_000_000);

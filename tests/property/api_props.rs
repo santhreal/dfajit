@@ -19,11 +19,11 @@ proptest! {
 
         // Check bounds on matches
         assert!(count <= input.len());
-        for i in 0..count {
-            assert!((matches[i].start as usize) < input.len());
-            assert!((matches[i].end as usize) <= input.len());
-            assert!(matches[i].start < matches[i].end);
-            assert_eq!(matches[i].pattern_id, 0);
+        for m in matches.iter().take(count) {
+            assert!((m.start as usize) < input.len());
+            assert!((m.end as usize) <= input.len());
+            assert!(m.start < m.end);
+            assert_eq!(m.pattern_id, 0);
         }
     }
 }

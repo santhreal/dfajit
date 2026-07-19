@@ -7,9 +7,9 @@ use regex_automata::{
     dfa::{dense, Automaton},
     Input, MatchKind,
 };
-use std::collections::VecDeque;
 #[cfg(feature = "regex")]
 use std::collections::HashMap;
+use std::collections::VecDeque;
 
 /// A JIT-compiled DFA that executes pattern matching as native code.
 ///
@@ -171,7 +171,7 @@ impl JitDfa {
             // scanner on generated parity inputs before exposing the JIT buffer.
             let jit_code = codegen::compile_x86_64(table, output_links)?;
             if jit_code.is_jit {
-                let interp_code = codegen::compile_interpreted_fallback(table, output_links)?;
+                let interp_code = codegen::compile_interpreted_fallback(table, output_links);
                 Self::verify_jit_parity(&jit_code, &interp_code, table)?;
             }
             Ok(Self {
@@ -216,7 +216,7 @@ impl JitDfa {
                 });
             }
 
-            let buf_size = jit_count.min(64).max(1);
+            let buf_size = jit_count.clamp(1, 64);
             jit_buf.resize(buf_size, Match::from_parts(0, 0, 0));
             interp_buf.resize(buf_size, Match::from_parts(0, 0, 0));
             let jit_written = jit_code.scan(input, &mut jit_buf);
@@ -246,11 +246,8 @@ impl JitDfa {
     /// repeated concatenation that exercises multiple matches in one scan.
     #[cfg(target_arch = "x86_64")]
     fn parity_inputs(table: &TransitionTable) -> Vec<Vec<u8>> {
-        let mut inputs: Vec<Vec<u8>> = Vec::new();
-        inputs.push(Vec::new());
-        inputs.push(vec![0x00]);
-        inputs.push(vec![0xFF]);
-        inputs.push((0..=255u8).collect());
+        let mut inputs: Vec<Vec<u8>> =
+            vec![Vec::new(), vec![0x00], vec![0xFF], (0..=255u8).collect()];
 
         let state_count = table.state_count();
         let class_count = table.class_count();
