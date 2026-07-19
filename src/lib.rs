@@ -1,7 +1,7 @@
 #![allow(clippy::missing_panics_doc)]
 //! JIT compilation of DFA transition tables to native x86_64 code.
 //!
-//! `dfajit` converts a DFA state machine (as produced by `warpstate`) into
+//! `dfajit` converts a DFA state machine (as produced by `vyre`) into
 //! a native function that scans input bytes without table lookup indirection.
 //! Each DFA state becomes a labeled basic block with a 256-entry jump table
 //! indexed by the input byte.

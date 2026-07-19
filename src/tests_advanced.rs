@@ -58,6 +58,61 @@ fn minimize_reduces_redundant_states() {
     }
 }
 
+/// Regression: `minimize` must mask off `ACCEPT_FLAG` (bit 31) when reading a
+/// transition as a state index, and must re-apply it on rebuild. A table
+/// deserialized from `from_table` may carry the flag on transitions to accept
+/// states. Before the fix, the flagged target read as a huge index, so the
+/// rebuilt transition collapsed to state 0 with the flag dropped, silently
+/// corrupting the minimized table (accept transitions became a jump to the
+/// start state).
+#[test]
+fn minimize_preserves_accept_flag_on_transitions() {
+    use crate::table::{ACCEPT_FLAG, STATE_MASK};
+
+    // States 1 and 2 are structurally identical (both go to the accept state 3
+    // on 'a' via a FLAGGED transition, everything else to 0), so they merge:
+    // 4 states -> 3.
+    let mut table = new_table(4, 256);
+    for s in 0..4 {
+        for b in 0..=255u8 {
+            table.set_transition(s, b, 0);
+        }
+    }
+    table.set_transition(1, b'a', 3 | ACCEPT_FLAG);
+    table.set_transition(2, b'a', 3 | ACCEPT_FLAG);
+    table.add_accept(3, 0);
+    table.set_pattern_length(0, 1);
+
+    let minimized = table.minimize().expect("redundant states should minimize");
+    assert!(minimized.state_count() < table.state_count());
+
+    // The class that old state 3 (the accept state) collapsed into.
+    let accept_class = minimized.accept_states()[0].0;
+
+    // At least one transition must still carry ACCEPT_FLAG and point to the
+    // accept class. Under the bug every flag was dropped and the target became
+    // 0, so no such transition would exist.
+    let flagged_accept = minimized
+        .transitions()
+        .iter()
+        .any(|&t| (t & ACCEPT_FLAG) != 0 && (t & STATE_MASK) == accept_class);
+    assert!(
+        flagged_accept,
+        "minimize dropped ACCEPT_FLAG or redirected the accept transition to state 0"
+    );
+
+    // And no flagged transition may point anywhere other than the accept class.
+    for &t in minimized.transitions() {
+        if t & ACCEPT_FLAG != 0 {
+            assert_eq!(
+                t & STATE_MASK,
+                accept_class,
+                "a flagged transition points to a non-accept class"
+            );
+        }
+    }
+}
+
 #[test]
 fn minimize_already_minimal() {
     let table = simple_ab_table();

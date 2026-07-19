@@ -1,6 +1,6 @@
 use crate::error::{Error, Result};
 
-use super::TransitionTable;
+use super::{TransitionTable, STATE_MASK};
 
 impl TransitionTable {
     /// Serialize the transition table to bytes.
@@ -193,7 +193,7 @@ impl TransitionTable {
             });
         }
         for &t in &transitions {
-            let state = t & 0x7FFF_FFFF;
+            let state = t & STATE_MASK;
             if state as usize >= state_count {
                 return Err(Error::InvalidTable {
                     reason: format!(

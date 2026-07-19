@@ -25,7 +25,7 @@ fn test_error_too_many_states() {
 #[test]
 fn test_error_invalid_table_mismatch() {
     let mut table = TransitionTable::new(2, 256).unwrap();
-    table.transitions_mut().push(0); // Add extra
+    table.transitions_raw_mut().push(0); // Add extra
     let result = JitDfa::compile(&table);
     assert!(matches!(result, Err(Error::InvalidTable { .. })));
 

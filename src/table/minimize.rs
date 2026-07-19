@@ -1,4 +1,4 @@
-use super::TransitionTable;
+use super::{TransitionTable, ACCEPT_FLAG, STATE_MASK};
 
 impl TransitionTable {
     /// Minimize the DFA using partition refinement.
@@ -44,7 +44,11 @@ impl TransitionTable {
                 sig.push(current_class);
                 for byte in 0..self.class_count {
                     let idx = state * self.class_count + byte;
-                    let target = self.transitions[idx] as usize;
+                    // Mask off ACCEPT_FLAG: a deserialized table may carry it on
+                    // transitions to accept states. Without masking the target
+                    // reads as a huge index (>= state_count) and every flagged
+                    // transition collapses to class 0, corrupting the signature.
+                    let target = (self.transitions[idx] & STATE_MASK) as usize;
                     let target_class = if target < self.state_count {
                         partition[target]
                     } else {
@@ -86,12 +90,19 @@ impl TransitionTable {
             let repr = class_representative[new_state];
             for byte in 0..self.class_count {
                 let idx = repr * self.class_count + byte;
-                let old_target = self.transitions[idx] as usize;
-                let new_target = if old_target < self.state_count {
+                let raw = self.transitions[idx];
+                let old_target = (raw & STATE_MASK) as usize;
+                let mut new_target = if old_target < self.state_count {
                     partition[old_target]
                 } else {
                     0
                 };
+                // Preserve the accept flag: the target's accept-ness survives
+                // minimization (accept states map to accept classes), so a
+                // transition flagged in the source stays valid when re-flagged.
+                if raw & ACCEPT_FLAG != 0 {
+                    new_target |= ACCEPT_FLAG;
+                }
                 new_table.transitions[new_state * self.class_count + byte] = new_target;
             }
         }

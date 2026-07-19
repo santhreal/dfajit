@@ -46,7 +46,7 @@ fn accept_state_on_every_transition_reports_total_matches() {
         64,
         "scan_count should see every accept transition"
     );
-    // scan() returns min(total, buffer.len()) — buffer has 8 slots
+    // scan() returns min(total, buffer.len()), buffer has 8 slots
     let written = jit.scan(&input, &mut matches);
     assert!(written >= 8, "scan should fill the buffer completely");
     // Verify first match is correct

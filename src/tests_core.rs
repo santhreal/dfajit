@@ -97,8 +97,26 @@ fn empty_dfa_rejected() {
 #[test]
 fn invalid_table_size_rejected() {
     let mut table = new_table(3, 256);
-    table.transitions_mut().truncate(10);
+    table.transitions_raw_mut().truncate(10);
     assert!(JitDfa::compile(&table).is_err());
+}
+
+#[test]
+fn transitions_mut_allows_element_edit_but_preserves_size_invariant() {
+    let mut table = new_table(2, 256);
+    let expected_len = 2 * 256;
+    assert_eq!(table.transitions_mut().len(), expected_len);
+
+    // Element mutation through the slice accessor is allowed and reflected.
+    table.transitions_mut()[5] = 1;
+    assert_eq!(table.transitions()[5], 1);
+
+    // The length invariant is UNCHANGED: the slice accessor structurally cannot
+    // push/truncate (compile-time guarantee), so a valid table stays valid and
+    // still compiles. Length corruption is only reachable via the doc-hidden
+    // transitions_raw_mut, exercised by invalid_table_size_rejected above.
+    assert_eq!(table.transitions().len(), expected_len);
+    assert!(JitDfa::compile(&table).is_ok());
 }
 
 #[test]

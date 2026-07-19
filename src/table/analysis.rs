@@ -10,7 +10,15 @@ impl TransitionTable {
         }
 
         for state in 0..self.state_count {
-            let row_start = state.saturating_mul(self.class_count);
+            // Clamp row_start to the actual buffer length first. On a well-formed
+            // table (transitions.len() == state_count * class_count) this is a
+            // no-op, but a corrupt/short table (e.g. deserialized with a
+            // state_count larger than transitions holds) would otherwise produce
+            // row_start > row_end (row_end is min'd to the length), panicking the
+            // slice. Clamping yields an empty row for out-of-range states instead.
+            let row_start = state
+                .saturating_mul(self.class_count)
+                .min(self.transitions.len());
             let row_end = row_start
                 .saturating_add(self.class_count)
                 .min(self.transitions.len());

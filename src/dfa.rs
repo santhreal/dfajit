@@ -1,14 +1,15 @@
 use crate::codegen;
 use crate::error::{Error, Result};
-use crate::table::TransitionTable;
+use crate::table::{TransitionTable, ACCEPT_FLAG, STATE_MASK};
 use matchkit::Match;
 #[cfg(feature = "regex")]
 use regex_automata::{
     dfa::{dense, Automaton},
     Input, MatchKind,
 };
+use std::collections::VecDeque;
 #[cfg(feature = "regex")]
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
 /// A JIT-compiled DFA that executes pattern matching as native code.
 ///
@@ -113,7 +114,7 @@ impl JitDfa {
             table.accept_states().iter().map(|&(s, _)| s).collect();
 
         for &t in table.transitions() {
-            let state = t & 0x7FFF_FFFF;
+            let state = t & STATE_MASK;
             if state as usize >= table.state_count() {
                 return Err(Error::InvalidTable {
                     reason: format!(
@@ -122,7 +123,7 @@ impl JitDfa {
                     ),
                 });
             }
-            if (t & 0x8000_0000) != 0 && !accept_set.contains(&state) {
+            if (t & ACCEPT_FLAG) != 0 && !accept_set.contains(&state) {
                 return Err(Error::InvalidTable {
                     reason: format!(
                         "transition target state {state} has bit 31 set but is not an accept state. Fix: only set bit 31 on transitions to accept states."
@@ -166,10 +167,15 @@ impl JitDfa {
 
         #[cfg(target_arch = "x86_64")]
         {
-            // Prefer interpreted scanner until JIT self-check parity is wired per-table.
-            let code = codegen::compile_interpreted_fallback(table, output_links)?;
+            // Compile to native x86_64 and verify it against the interpreted
+            // scanner on generated parity inputs before exposing the JIT buffer.
+            let jit_code = codegen::compile_x86_64(table, output_links)?;
+            if jit_code.is_jit {
+                let interp_code = codegen::compile_interpreted_fallback(table, output_links)?;
+                Self::verify_jit_parity(&jit_code, &interp_code, table)?;
+            }
             Ok(Self {
-                code,
+                code: jit_code,
                 state_count: table.state_count(),
                 pattern_count,
                 output_links: output_links.to_vec(),
@@ -185,6 +191,144 @@ impl JitDfa {
                 output_links: output_links.to_vec(),
             })
         }
+    }
+
+    /// Run the JIT and interpreted scanners against the same generated inputs
+    /// and fail closed if their match counts or match contents diverge.
+    #[cfg(target_arch = "x86_64")]
+    fn verify_jit_parity(
+        jit_code: &codegen::ExecutableBuffer,
+        interp_code: &codegen::ExecutableBuffer,
+        table: &TransitionTable,
+    ) -> Result<()> {
+        let inputs = Self::parity_inputs(table);
+        let mut jit_buf = Vec::new();
+        let mut interp_buf = Vec::new();
+        for input in &inputs {
+            let jit_count = jit_code.scan_count(input);
+            let interp_count = interp_code.scan_count(input);
+            if jit_count != interp_count {
+                return Err(Error::JitParity {
+                    reason: format!(
+                        "scan_count mismatch on parity input len {}: jit={jit_count} interp={interp_count}",
+                        input.len()
+                    ),
+                });
+            }
+
+            let buf_size = jit_count.min(64).max(1);
+            jit_buf.resize(buf_size, Match::from_parts(0, 0, 0));
+            interp_buf.resize(buf_size, Match::from_parts(0, 0, 0));
+            let jit_written = jit_code.scan(input, &mut jit_buf);
+            let interp_written = interp_code.scan(input, &mut interp_buf);
+            if jit_written != interp_written {
+                return Err(Error::JitParity {
+                    reason: format!(
+                        "scan written count mismatch on parity input len {}: jit={jit_written} interp={interp_written}",
+                        input.len()
+                    ),
+                });
+            }
+            if jit_buf[..jit_written] != interp_buf[..interp_written] {
+                return Err(Error::JitParity {
+                    reason: format!(
+                        "scan match contents mismatch on parity input len {}",
+                        input.len()
+                    ),
+                });
+            }
+        }
+        Ok(())
+    }
+
+    /// Generate a small, table-specific set of parity inputs.  This includes
+    /// static edge cases plus a shortest path to each accept state and a
+    /// repeated concatenation that exercises multiple matches in one scan.
+    #[cfg(target_arch = "x86_64")]
+    fn parity_inputs(table: &TransitionTable) -> Vec<Vec<u8>> {
+        let mut inputs: Vec<Vec<u8>> = Vec::new();
+        inputs.push(Vec::new());
+        inputs.push(vec![0x00]);
+        inputs.push(vec![0xFF]);
+        inputs.push((0..=255u8).collect());
+
+        let state_count = table.state_count();
+        let class_count = table.class_count();
+        if state_count == 0 || class_count == 0 {
+            return inputs;
+        }
+
+        let transitions = table.transitions();
+        let mut is_accept = vec![false; state_count];
+        for &(s, _) in table.accept_states() {
+            if (s as usize) < state_count {
+                is_accept[s as usize] = true;
+            }
+        }
+
+        let mut visited = vec![false; state_count];
+        let mut prev: Vec<Option<(usize, u8)>> = vec![None; state_count];
+        let mut queue = VecDeque::new();
+        visited[0] = true;
+        queue.push_back(0usize);
+
+        let mut accept_paths: Vec<Vec<u8>> = Vec::new();
+
+        while let Some(s) = queue.pop_front() {
+            for b in 0..=255u8 {
+                let idx = s * class_count + (b as usize);
+                let t = (transitions.get(idx).copied().unwrap_or(0) & STATE_MASK) as usize;
+                if t >= state_count {
+                    continue;
+                }
+                if is_accept[t] {
+                    let mut path = Vec::new();
+                    let mut cur = s;
+                    let mut steps = 0;
+                    while let Some((p, byte)) = prev[cur] {
+                        path.push(byte);
+                        cur = p;
+                        steps += 1;
+                        if steps > state_count {
+                            break;
+                        }
+                    }
+                    path.reverse();
+                    path.push(b);
+                    if !path.is_empty() {
+                        accept_paths.push(path);
+                    }
+                }
+                let next = if is_accept[t] { 0 } else { t };
+                if next < state_count && !visited[next] {
+                    visited[next] = true;
+                    prev[next] = Some((s, b));
+                    queue.push_back(next);
+                }
+            }
+        }
+
+        // Test each accept path individually and doubled (multiple matches).
+        for path in &accept_paths {
+            inputs.push(path.clone());
+            let mut doubled = path.clone();
+            doubled.extend_from_slice(path);
+            inputs.push(doubled);
+        }
+
+        // Concatenate all accept paths; after each accept the JIT resets to the
+        // start state, so the next path should continue normally.
+        if !accept_paths.is_empty() {
+            let mut concat: Vec<u8> = Vec::new();
+            for path in &accept_paths {
+                concat.extend_from_slice(path);
+            }
+            inputs.push(concat.clone());
+            concat.extend_from_slice(&concat.clone());
+            inputs.push(concat);
+        }
+
+        inputs
     }
 
     /// Scan input bytes, appending matches to the output vector.
@@ -217,7 +361,7 @@ impl JitDfa {
         for (pos, &byte) in input.iter().enumerate() {
             let idx = state as usize * table.class_count() + byte as usize;
             let next = table.transitions().get(idx).copied().unwrap_or(0);
-            let clean_next = next & 0x7FFF_FFFF;
+            let clean_next = next & STATE_MASK;
 
             if accept_pattern[clean_next as usize] != 0xFFFF_FFFF {
                 let mut output_state = clean_next;
@@ -289,7 +433,7 @@ impl JitDfa {
         for &byte in input {
             let idx = state as usize * table.class_count() + byte as usize;
             let next = table.transitions().get(idx).copied().unwrap_or(0);
-            let clean_next = next & 0x7FFF_FFFF;
+            let clean_next = next & STATE_MASK;
 
             if is_accept[clean_next as usize] {
                 let mut output_state = clean_next;
@@ -352,6 +496,16 @@ impl JitDfa {
             for &byte in *pattern {
                 let next = trans[current as usize][byte as usize];
                 if next == 0 {
+                    // Fail fast BEFORE allocating another 1 KiB transition row.
+                    // build_dense_table also enforces MAX_STATES, but only after
+                    // the whole trie is built, so a pathological pattern set would
+                    // otherwise allocate gigabytes of rows before being rejected.
+                    if state_count >= TransitionTable::MAX_STATES {
+                        return Err(Error::TooManyStates {
+                            states: state_count + 1,
+                            max: TransitionTable::MAX_STATES,
+                        });
+                    }
                     let new_state = state_count as u32;
                     state_count += 1;
                     trans.push([0u32; 256]);
@@ -424,6 +578,10 @@ impl JitDfa {
         }
 
         // Propagate failure-link patterns to states that don't have their own.
+        // For an inherited state, the nearest ancestor pattern becomes its
+        // reported `accept_pattern` and the ancestor's output link continues the
+        // chain of nested suffix patterns. This is built after the explicit
+        // output links so inherited states correctly emit the full output chain.
         for state in 0..state_count {
             if acc_state[state].is_empty() {
                 let mut f = fail[state];
@@ -431,6 +589,10 @@ impl JitDfa {
                     if !acc_state[f as usize].is_empty() {
                         let pid = acc_state[f as usize][0];
                         acc_state[state].push(pid);
+                        // The next output in the chain is the same as the
+                        // ancestor's next output, not the ancestor itself (which
+                        // would duplicate the inherited pattern).
+                        output_link[state] = output_link[f as usize];
                         break;
                     }
                     f = fail[f as usize];
@@ -566,10 +728,11 @@ impl JitDfa {
             }
         }
 
-        // Regex patterns have variable lengths; fixed pattern lengths cannot be derived
-        // from the source string. Setting length to 0 prevents bogus start-offset underflow.
-        for pattern_id in 0..patterns.len() {
-            table.set_pattern_length(pattern_id as u32, 0);
+        // Regex patterns have variable lengths; a literal pattern's byte length is a
+        // reasonable default for computing start offsets. For general regexes the start
+        // offset may be wrong, but `saturating_sub` keeps it well-defined.
+        for (pattern_id, pattern) in patterns.iter().enumerate() {
+            table.set_pattern_length(pattern_id as u32, pattern.len() as u32);
         }
 
         Self::compile(&table)

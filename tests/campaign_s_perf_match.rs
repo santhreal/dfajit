@@ -1,4 +1,4 @@
-//! S-perf-match campaign catalog — +40 dfajit DFA/JIT smoke cases.
+//! S-perf-match campaign catalog: +40 dfajit DFA/JIT smoke cases.
 
 #![allow(clippy::unwrap_used)]
 

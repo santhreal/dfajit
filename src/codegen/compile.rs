@@ -41,6 +41,7 @@ pub fn compile_x86_64(table: &TransitionTable, output_links: &[u32]) -> Result<E
         }
     }
 
+
     let mut output_link = output_links.to_vec();
     if output_link.len() < table.state_count() {
         output_link.resize(table.state_count(), 0xFFFF_FFFF);
@@ -56,16 +57,21 @@ pub fn compile_x86_64(table: &TransitionTable, output_links: &[u32]) -> Result<E
     let empty_patch = c.len();
     c.extend_from_slice(&[0; 4]);
 
+    // Load the transition table base once into the callee-saved r10 register
+    // before entering the hot scan loop, instead of re-emitting a 10-byte
+    // `movabs rdi, <trans_base>` on every input byte.
+    let trans_patch = c.len();
+    c.extend_from_slice(&[0x49, 0xBA]);
+    c.extend_from_slice(&[0; 8]);
+
     let scan_top = c.len();
     c.extend_from_slice(&[0x43, 0x0F, 0xB6, 0x04, 0x2C]);
     c.extend_from_slice(&[0x41, 0x69, 0xD3]);
     c.extend_from_slice(&(table.class_count() as u32).to_le_bytes());
     c.extend_from_slice(&[0x01, 0xC2]);
 
-    let trans_patch = c.len();
-    c.extend_from_slice(&[0x48, 0xBF]);
-    c.extend_from_slice(&[0; 8]);
-    c.extend_from_slice(&[0x8B, 0x04, 0x97, 0x89, 0xC1, 0x25]);
+    // Transition lookup uses the pre-loaded r10 base; rdx is the byte index.
+    c.extend_from_slice(&[0x41, 0x8B, 0x04, 0x92, 0x89, 0xC1, 0x25]);
     c.extend_from_slice(&0x7FFF_FFFFu32.to_le_bytes());
     c.extend_from_slice(&[0x41, 0x89, 0xC3, 0xF7, 0xC1]);
     c.extend_from_slice(&0x8000_0000u32.to_le_bytes());
@@ -84,7 +90,7 @@ pub fn compile_x86_64(table: &TransitionTable, output_links: &[u32]) -> Result<E
     c.extend_from_slice(&[0x48, 0xBF]);
     c.extend_from_slice(&[0; 8]);
     c.extend_from_slice(&[
-        0x42, 0x8B, 0x04, 0x87, 0x4C, 0x89, 0xFF, 0x48, 0x6B, 0xFF, 0x10, 0x4C, 0x01, 0xF7, 0x89,
+        0x42, 0x8B, 0x04, 0x87, 0x4C, 0x89, 0xFF, 0x48, 0x6B, 0xFF, 0x0C, 0x4C, 0x01, 0xF7, 0x89,
         0x07, 0x89, 0xC1,
     ]);
 
@@ -237,42 +243,14 @@ pub(crate) fn compile_interpreted_fallback(
     table: &TransitionTable,
     output_links: &[u32],
 ) -> Result<ExecutableBuffer> {
-    const FALLBACK_CODE: [u8; 1] = [0xC3];
-    let page_size = 4096usize;
-    let ptr = unsafe {
-        libc::mmap(
-            std::ptr::null_mut(),
-            page_size,
-            libc::PROT_READ | libc::PROT_WRITE,
-            libc::MAP_PRIVATE | libc::MAP_ANONYMOUS,
-            -1,
-            0,
-        )
-    };
-    if ptr == libc::MAP_FAILED {
-        return Err(Error::MemoryAllocation {
-            reason: format!("mmap failed: {}", std::io::Error::last_os_error()),
-        });
-    }
-
-    unsafe {
-        std::ptr::copy_nonoverlapping(
-            FALLBACK_CODE.as_ptr(),
-            ptr.cast::<u8>(),
-            FALLBACK_CODE.len(),
-        );
-    }
-
-    let prot = unsafe { libc::mprotect(ptr, page_size, libc::PROT_READ | libc::PROT_EXEC) };
-    if prot != 0 {
-        unsafe {
-            libc::munmap(ptr, page_size);
-        }
-        return Err(Error::MemoryAllocation {
-            reason: format!("mprotect failed: {}", std::io::Error::last_os_error()),
-        });
-    }
-
+    // The interpreted path (`is_jit == false`) scans in software via `table`,
+    // `accept_pattern`, and `output_links`; it never transmutes or calls
+    // `ptr`. The previous code mmap'd a page, wrote a single `RET` (0xC3) into
+    // it, flipped it to PROT_EXEC, and later munmap'd it - two syscalls plus an
+    // unused executable page allocated on EVERY interpreted compile (which is
+    // the default path, see dfa.rs). Use a null pointer / zero length instead;
+    // `ExecutableBuffer`'s Drop already skips `munmap` when `ptr` is null or
+    // `len` is 0, and no scan path dereferences `ptr` when `is_jit` is false.
     let mut accept_pattern = vec![0xFFFF_FFFF; table.state_count()];
     for &(state, pid) in table.accept_states() {
         if (state as usize) < accept_pattern.len() {
@@ -286,8 +264,8 @@ pub(crate) fn compile_interpreted_fallback(
     }
 
     Ok(ExecutableBuffer {
-        ptr: ptr.cast::<u8>(),
-        len: page_size,
+        ptr: std::ptr::null_mut(),
+        len: 0,
         table: Some(table.clone()),
         is_jit: false,
         accept_pattern,

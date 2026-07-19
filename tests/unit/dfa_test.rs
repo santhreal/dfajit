@@ -79,3 +79,24 @@ fn test_has_match_false() {
 
     assert!(!dfa.has_match(b"foo abd bar"));
 }
+
+#[test]
+fn test_inherited_state_emits_nested_suffix_matches() {
+    // A prefix state that is not itself a pattern can inherit the nearest
+    // suffix pattern and must continue down the output-link chain to report
+    // nested suffixes (e.g. "abc" -> "bc" -> "c").
+    let patterns: Vec<&[u8]> = vec![b"abcd", b"bc", b"c"];
+    let dfa = JitDfa::from_patterns(&patterns).unwrap();
+
+    let mut matches = vec![Match::from_parts(0, 0, 0); 10];
+    let count = dfa.scan(b"xabc", &mut matches);
+    assert_eq!(count, 2, "inherited state abc should report both bc and c");
+
+    assert_eq!(matches[0].pattern_id, 1); // bc
+    assert_eq!(matches[0].start, 2);
+    assert_eq!(matches[0].end, 4);
+
+    assert_eq!(matches[1].pattern_id, 2); // c
+    assert_eq!(matches[1].start, 3);
+    assert_eq!(matches[1].end, 4);
+}

@@ -214,7 +214,7 @@ fn compute_ranges_merges_consecutive_bytes_with_shared_target() {
 
 #[test]
 fn scan_1mb_all_matches() {
-    // Every byte matches — worst case for match output
+    // Every byte matches, worst case for match output
     let mut table = TransitionTable::new(2, 256).unwrap();
     for b in 0..=255u8 {
         table.set_transition(0, b, 1);

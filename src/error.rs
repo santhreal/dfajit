@@ -30,6 +30,14 @@ pub enum Error {
         /// Maximum supported by JIT.
         max: usize,
     },
+
+    /// The JIT scanner produced different results than the interpreted scanner
+    /// during the per-table self-check parity pass.
+    #[error("JIT self-check parity failed: {reason}. Fix: this is a dfajit compiler bug; report it and use the interpreted fallback.")]
+    JitParity {
+        /// Description of the mismatch.
+        reason: String,
+    },
 }
 
 /// Result type alias.

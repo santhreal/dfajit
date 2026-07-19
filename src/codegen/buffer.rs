@@ -1,6 +1,8 @@
 //! x86_64 JIT codegen buffer and runtime scanning helpers.
 
 #[cfg(target_arch = "x86_64")]
+use crate::table::STATE_MASK;
+#[cfg(target_arch = "x86_64")]
 use crate::TransitionTable;
 #[cfg(target_arch = "x86_64")]
 use matchkit::Match;
@@ -104,7 +106,7 @@ impl ExecutableBuffer {
         for &byte in input {
             let idx = state as usize * table.class_count() + byte as usize;
             let next = table.transitions().get(idx).copied().unwrap_or(0);
-            let clean_next = next & 0x7FFF_FFFF;
+            let clean_next = next & STATE_MASK;
 
             if self
                 .accept_pattern
@@ -140,7 +142,7 @@ impl ExecutableBuffer {
         for (pos, &byte) in input.iter().enumerate() {
             let idx = state as usize * table.class_count() + byte as usize;
             let next = table.transitions().get(idx).copied().unwrap_or(0);
-            let clean_next = next & 0x7FFF_FFFF;
+            let clean_next = next & STATE_MASK;
 
             if self
                 .accept_pattern

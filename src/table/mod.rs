@@ -14,6 +14,15 @@ pub struct TransitionTable {
     pattern_lengths: Vec<u32>,
 }
 
+/// High bit of a transition word. When set, the transition's target is an
+/// accept state; the JIT uses this to inline the accept check. Externally
+/// supplied tables (via deserialization) may carry it, so every consumer that
+/// treats a transition as a state index must mask it off with [`STATE_MASK`].
+pub(crate) const ACCEPT_FLAG: u32 = 0x8000_0000;
+
+/// Mask that clears [`ACCEPT_FLAG`], yielding the raw target state index.
+pub(crate) const STATE_MASK: u32 = 0x7FFF_FFFF;
+
 impl TransitionTable {
     /// Maximum states allowed in a single DFA.
     pub const MAX_STATES: usize = 65_536;
@@ -105,8 +114,28 @@ impl TransitionTable {
         &self.transitions
     }
 
-    /// Mutable transition array.
-    pub fn transitions_mut(&mut self) -> &mut Vec<u32> {
+    /// Mutable transition array (elements only).
+    ///
+    /// Returns a slice, not the backing `Vec`, so the `len() == state_count *
+    /// class_count` size invariant the scanner relies on cannot be broken through
+    /// this accessor: callers may rewrite transition targets but cannot push or
+    /// truncate. (Rewriting a target to an out-of-range state is still possible;
+    /// the scanner bounds-checks every transition, so that fails closed rather
+    /// than reading out of bounds.)
+    pub fn transitions_mut(&mut self) -> &mut [u32] {
+        &mut self.transitions
+    }
+
+    /// Raw mutable access to the backing transition `Vec`, including its length.
+    ///
+    /// This intentionally bypasses the size invariant and exists ONLY for
+    /// adversarial/regression tests that must construct a deliberately corrupt
+    /// table (wrong length) to prove the scanner fails closed on it. It is hidden
+    /// from the public API surface because changing the length here leaves the
+    /// table inconsistent with `state_count`/`class_count`; production code must
+    /// use [`Self::transitions_mut`] (element-only) instead.
+    #[doc(hidden)]
+    pub fn transitions_raw_mut(&mut self) -> &mut Vec<u32> {
         &mut self.transitions
     }
 
